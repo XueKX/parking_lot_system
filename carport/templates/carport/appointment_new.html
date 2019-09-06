@@ -1,0 +1,183 @@
+{% extends 'carport/base.html' %}
+{% load staticfiles %}
+{% block title %}预约车位{% endblock %}
+{% block css %}
+    {#    <link rel="stylesheet" href="{% static 'css/login_new.css' %}">#}
+{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="alert alert-dismissible text-center col-md-4" style="height: 80px;margin-left: 27%">
+                {% if message != "" %}
+                    <div>
+                        <div class="alert {{ alert_class }} alert-dismissable col-md-offset-2">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+                                &times;
+                            </button>
+                            <div id="hint">{{ message }}</div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-offset-1 col-md-9">
+                <div class="panel panel-warning">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">车位预约</h3>
+                    </div>
+                    <div class="panel-body">
+                        <div style="padding: 20px 50px 10px;">
+                            <form class="bs-example bs-example-form" role="form" action="inquiry" method="GET">
+                                <div class="input-group">
+                                    <span class="input-group-addon">汽车车牌</span>
+                                    {{ appointment_form.car_license }}
+                                </div>
+                                <br>
+                                <div class='input-group date' id='datetimepicker1'>
+                                    <span class="input-group-addon">开始时间</span>
+                                    {{ appointment_form.begin_time }}
+                                    {#                                    <input type='text' class="form-control" />#}
+                                    <span class="input-group-addon">
+                                        <span class="glyphicon glyphicon-calendar"></span>
+                                    </span>
+                                </div>
+                                <br>
+                                <div class='input-group date' id='datetimepicker2'>
+                                    <span class="input-group-addon">结束时间</span>
+                                    {#                                   <input type='text' class="form-control" />#}
+                                    {{ appointment_form.end_time }}
+                                    <span class="input-group-addon">
+                                        <span class="glyphicon glyphicon-calendar"></span>
+                                    </span>
+                                </div>
+                                <br><br>
+                                <div>
+                                    <label style="color: #00b4ef">预计金额：{{ appointment_form.total }} 元</label>
+                                    <button style="margin-left: 90%;margin-top: -10px" type="submit"
+                                            class="btn btn-info">查 询
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-offset-1 col-md-9">
+                <div class="panel panel-info">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">可选车位</h3>
+                    </div>
+                    <div class="panel-body scrollbar" style="height: 150px;overflow-y:scroll">
+                        <table class="table table-bordered">
+                            <thead>
+                            <tr>
+                                <th>车位号</th>
+                                <th>操作</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for i in carport_list %}
+                                <tr>
+                                    <td>{{ i.carport_site }}</td>
+                                    <td>
+                                        <button class="btn btn-primary"
+                                                onclick="appointment({{ i.carport_site }})">预
+                                            约
+                                        </button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-offset-1 col-md-9">
+                <div class="panel panel-success">
+                    <div class="panel-heading" style="color: #00b4ef">
+                        <h3 class="panel-title">协商车位</h3>
+                    </div>
+                    <div class="panel-body scrollbar">
+                        <table class="table table-hover">
+                            <thead>
+                            <tr>
+                                <th>车位号</th>
+                                <th>车位主人手机号</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for i in negotiate_list %}
+                                <tr>
+                                    <td>{{ i.0 }}</td>
+                                    <td>{{ i.2 }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                        {% if negotiate_list %}
+                            <button class="btn btn-warning" style="margin-left: 85%" onclick="negotiate()">协商车位</button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block js %}
+    <script>
+        var now = new Date()
+        $('#datetimepicker1').datetimepicker({
+            locale: moment().locale('zh-cn'),
+            format: 'YYYY-MM-DD HH:mm',
+            minDate: new Date(),
+            sideBySide: true,
+            useCurrent: false,
+        });
+        $('#datetimepicker2').datetimepicker({
+            format: 'YYYY-MM-DD HH:mm',
+            locale: moment().locale('zh-cn'),
+            minDate: new Date(),
+            useCurrent: false,
+            sideBySide: true,
+        });
+        $("#datetimepicker1").on("dp.change", function (e) {
+            var max_date = new Date(e.date)
+            max_date.setHours(23)
+            max_date.setMinutes(59)
+            $('#datetimepicker2').data("DateTimePicker").minDate(e.date);
+            $('#datetimepicker2').data("DateTimePicker").maxDate(max_date);
+        });
+
+        function appointment(carport_site) {
+            $.post('appointment', {carport_site: carport_site}, function (data) {
+                location.href = 'order_to'
+            })
+        }
+
+        function negotiate(obj) {
+            var car_license = $('#id_car_license').val();
+            var begin_time = $('#id_begin_time').val();
+            var end_time = $('#id_end_time').val();
+            $.post('negotiate', {
+                    car_license: car_license,
+                    begin_time: begin_time,
+                    end_time: end_time
+                },
+                $('#hint').html("系统协商中")
+            )
+
+            var x = document.getElementsByClassName('btn btn-warning');
+            if (x[0].innerText == "协商车位") {           //通过.innerHTML获取
+                x[0].childNodes[0].data = "协商中";
+                x[0].style.background = 'gray';
+                x[0].type = "button"
+                x[0].class = "btn btn-default btn-lg"
+                x[0].disabled = "disabled"
+            }//通过.childNodes[0].data更改标签值
+        }
+    </script>
+{% endblock %}

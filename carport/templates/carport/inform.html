@@ -1,0 +1,76 @@
+{% extends 'carport/base.html' %}
+{% load staticfiles %}
+{% block title %}通知{% endblock %}
+
+
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-md-offset-1 col-md-10" style="height: 80px">
+                {% if message != "" %}
+                    <div >
+                        <div class="alert {{ alert_class }} alert-dismissable">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+                                &times;
+                            </button>
+                            <div id="hint">{{ message }}</div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-offset-0 col-md-12">
+                <div class="panel panel-success scrollbar" style="height: 300px;overflow-y:scroll">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">通知</h3>
+                    </div>
+                    <div class="panel-body">
+                        <table class="table">
+                          <thead>
+                            <tr>
+                              <th width="80px">通知号</th>
+                              <th width="200px">创建日期</th>
+                              <th width="600px">信息</th>
+                              <th width="100px">状态</th>
+                              <th width="140px">操作</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {% for inform in inform_list %}
+                                <tr class="{{ inform.status }}">
+                                    <td>{{ inform.id }}</td>
+                                    <td>{{ inform.create_time }}</td>
+                                    <td>{{ inform.message }}</td>
+                                    <td>{{ inform|displayName:'status'}}</td>
+                                    {% if inform.status == 'success' %}
+                                        <td>
+                                            <button onclick="accept({{ inform.id }})" type="button" class="btn btn-success">接受</button>
+                                            <button onclick="reject({{ inform.id }})" type="button" class="btn btn-warning">拒绝</button>
+                                        </td>
+                                    {% endif %}
+                                </tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block js %}
+    <script>
+        function accept(inform_id) {
+            $.post('accept',{inform_id:inform_id},function (data) {
+                location.reload()
+            })
+        }
+        function reject(inform_id){
+            $.post ('reject', {inform_id:inform_id},function (){
+                location.reload()
+            })
+        }
+    </script>
+{% endblock %}

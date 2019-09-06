@@ -1,0 +1,147 @@
+{% extends 'carport/base.html' %}
+{% load staticfiles %}
+{% block title %}我预约的订单{% endblock %}
+{% block css %}
+    <link rel="stylesheet" href="{% static 'css/step.css' %}">
+{% endblock %}
+
+
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-md-offset-1 col-md-10" style="height: 80px">
+                {% if message != "" %}
+                    <div>
+                        <div class="alert {{ alert_class }} alert-dismissable">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+                                &times;
+                            </button>
+                            <div id="hint">{{ message }}</div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-offset-0 col-md-12">
+                <div class="panel panel-success">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">成功预约订单</h3>
+                    </div>
+                    <div class="panel-body">
+                        <table class="table">
+                            <thead>
+                            <tr>
+                                <th>订单号</th>
+                                <th>订单创建日期</th>
+                                <th>预约的车牌</th>
+                                <th>预约的车位</th>
+                                <th>开始时间</th>
+                                <th>结束时间</th>
+                                <th>订单金额</th>
+                                <th>订单状态</th>
+                                <th>操作</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for order in order_list %}
+                                <tr class="{{ order.status }}">
+                                    {% if order.status == 'success' %}
+                                        <td>{{ order.id }}</td>
+                                        <td>{{ order.create_time }}</td>
+                                        <td>{{ order.car_license }}</td>
+                                        <td>{{ order.carport_site }}</td>
+                                        <td>{{ order.begin_time }}</td>
+                                        <td>{{ order.end_time }}</td>
+                                        <td>{{ order.amount }}</td>
+                                        <td>{{ order|displayName:'status' }}</td>
+                                        <td>
+                                            <button onclick="cancel({{ order.id }})" type="button"
+                                                    class="btn btn-danger">取消
+                                            </button>
+                                            <button onclick="finish({{ order.id }})" type="button"
+                                                    class="btn btn-warning">终止
+                                            </button>
+                                        </td>
+                                    {% endif %}
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% if step_index != -1 %}
+                    <div class="panel panel-success">
+                        <div class="panel-heading">
+                            <h3 style="float: left">协商进度：</h3>
+                        </div>
+                        <table class="table table-hover">
+                            <tr>
+                                <th>车位号</th>
+                                <th>车位主人手机号</th>
+                                <th>协商状态</th>
+                            </tr>
+                            {% for order in order_list %}
+                                <tr>
+                                    <td>{{ order.carport_site }}</td>
+                                    <td>
+                                        <script>var a = '{{ order.carport_owner }}';
+                                        var b = a.toString().split(',')[1];
+                                        document.write(b)</script>
+                                    </td>
+                                    <td style="color: #d58512 ">{{ order|displayName:'status' }}</td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                    </div>
+
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block js %}
+    <script>
+        function finish(order_id) {
+            $.get('finish', {order_id: order_id}, function (data) {
+                location.reload()
+            })
+        }
+
+        function cancel(order_id) {
+            $.get('cancel', {order_id: order_id}, function () {
+                location.reload()
+            })
+        }
+
+        var steps = $(".step");
+        var step_begin = {{ step_begin }};
+        var step_end = {{ step_end }};
+        setStep(step_begin, step_end);
+
+        $(".step-icon").click(function () {
+            var me = this;
+            stepIndex = $(me).parents(".step").index();
+            setStep(stepIndex);
+        });
+
+
+        function setStep(step_begin, step_end) {
+            $(steps).removeClass("is-success");
+            {#            $(steps).removeClass("last-success");#}
+
+            for (var i = step_begin; i <= step_end; i++) {
+                $(steps[i]).addClass("is-success");
+                {#                var step = steps[i];#}
+                {#                if (i < stepIndex) {#}
+                {#                    $(step).addClass("is-success");#}
+                {#                }#}
+                {#                else {#}
+                {#                    $(step).addClass("last-success");#}
+                {#                }#}
+            }
+        }
+    </script>
+{% endblock %}
