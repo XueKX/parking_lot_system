@@ -94,10 +94,15 @@ class Negotiation(models.Model):
 
 
 class AvailCarport(models.Model):
+    status_list = (
+        ('free', '未被预约'),
+        ('reserved', '已被预约'),
+    )
     carport_site = models.CharField(primary_key=True, max_length=200)
     begin_time = models.DateTimeField()
     end_time = models.DateTimeField()
     owner_phone = models.CharField(max_length=200)
+    site_status = models.CharField(max_length=200, default='free', choices=status_list)
 
 
 class Inform(models.Model):

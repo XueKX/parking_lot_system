@@ -17,4 +17,5 @@ urlpatterns = [
     path('inform', views.inform, name = 'inform'),
     path('accept', views.accept, name = 'accept'),
     path('reject', views.reject, name = 'reject'),
+    path('cancel_published', views.cancel_published, name='cancel_published'),
 ]

@@ -9,14 +9,14 @@
 {% block content %}
     <div class="container">
         <div class="row">
-            <div class="col-md-offset-1 col-md-10" style="height: 80px">
+            <div class="col-md-offset-1 col-md-9" style="height: 80px">
                 {% if message != "" %}
                     <div>
                         <div class="alert {{ alert_class }} alert-dismissable">
                             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
                                 &times;
                             </button>
-                            <div id="hint">{{ message }}</div>
+                            <div class="text-center" id="hint">{{ message }}</div>
                         </div>
                     </div>
                 {% endif %}
@@ -34,7 +34,7 @@
                                 <form class="bs-example bs-example-form" role="form" action="publish" method="POST">
                                     {#                                {% csrf_token %}#}
                                     <div class="input-group">
-                                        <span class="input-group-addon">车位序号：</span>
+                                        <span class="input-group-addon">车位序号</span>
                                         <select class="form-control" name="carport_site">
                                             {% for i in result_list %}
                                                 <option>{{ i }}</option>
@@ -76,6 +76,7 @@
                                     <th>车位号</th>
                                     <th>车位空闲开始时间</th>
                                     <th>车位空闲结束时间</th>
+                                    <th>订单状态</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -84,11 +85,20 @@
                                         <td>{{ i.carport_site }}</td>
                                         <td>{{ i.begin_time }}</td>
                                         <td>{{ i.end_time }}</td>
-{#                                        <td>#}
-{#                                            <button class="btn btn-primary"#}
-{#                                                    onclick="cancel({{ i.carport_site }})">取消#}
-{#                                            </button>#}
-{#                                        </td>#}
+                                        <td>{{ i|displayName:'site_status' }}</td>
+                                        <td>
+                                            {% if i.site_status == 'free' %}
+                                                <button class="btn btn-primary"
+                                                        onclick="cancel_published({{ i.carport_site }})">
+                                                    取消
+                                                </button>
+{#                                            {% else %}#}
+{#                                                <button class="btn btn-primary"#}
+{#                                                        onclick="cancel({{ i.carport_site }})">#}
+{#                                                    取消#}
+{#                                                </button>#}
+                                            {% endif %}
+                                        </td>
                                     </tr>
                                 {% endfor %}
                                 </tbody>
@@ -125,9 +135,9 @@
             $('#datetimepicker1').data("DateTimePicker").maxDate(e.date);
         });
 
-         function cancel(carport_site) {
+        function cancel_published(carport_site) {
             $.post('cancel_published', {carport_site: carport_site}, function (data) {
-                location.href = 'order_to'
+                location.href = 'publish'
             })
         }
     </script>

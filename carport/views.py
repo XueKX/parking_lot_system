@@ -69,10 +69,7 @@ def appointment(request):
         begin_time = request.session['appointment_begin_time']
         end_time = request.session['appointment_end_time']
         total = request.session['appointment_total']
-        # TODO
         carport = models.Carport.objects.get(site=carport_site)
-        # carport.current_car_license=car_license
-        # carport.save()
         owner = models.User.objects.get(phone=carport.owner_phone)
         customer = request.session['user']
         models.Order.objects.create(
@@ -86,6 +83,10 @@ def appointment(request):
             carport_owner=owner,
             carport_customer=customer,
         )
+        # 更新 availcarport 状态
+        boj = models.AvailCarport.objects.get(carport_site=carport_site)
+        boj.site_status = 'reserved'
+        boj.save()
         request.session['message'] = '预订成功!'
         request.session['alert_class'] = 'alert-success'
         return render(request, 'carport/order_to.html', locals())
@@ -107,9 +108,11 @@ def get_carport_list(begin_time, end_time):
     availCarports = models.AvailCarport.objects.filter(begin_time__lte=begin_time, end_time__gte=end_time)
     res = list(availCarports)
     for i, port in enumerate(res):
-        obj = models.Order.objects.filter(carport_site=port.carport_site)
+        # 有时间重复的
+        obj = models.Order.objects.filter(carport_site=port.carport_site, status='success', begin_time__lte=end_time,
+                                          end_time__gte=begin_time)
         for o in obj:
-            if o and o.status == 'success':
+            if o:
                 res.remove(port)
     return res
 
@@ -123,32 +126,45 @@ def publish(request):
     if not request.session.get('is_login'):
         return redirect('/carport/login')
     user_phone = request.session.get('user').phone
-
+    # 展示已发布订单及所拥有车位
+    published_list = models.AvailCarport.objects.filter(owner_phone=user_phone)
+    carport_site_list = models.Carport.objects.filter(owner_phone=user_phone).values_list('site', flat=True)
+    request.session['previous_page'] = request.session['current_page']
+    request.session['current_page'] = 'publish'
+    result_list = []
     # 提交发布表单
     if request.method == 'POST':
         carport_site = request.POST.get('carport_site')
         begin_time = request.POST.get('begin_time')
         end_time = request.POST.get('end_time')
+        message = '发布成功!'
+        alert_class = 'alert-success'
         if carport_site == '' or begin_time == '' or end_time == '':
+            message = '请检查填写信息'
             alert_class = 'alert-danger'
-            publish_message = '请检查填写信息'
         try:
-            old = models.AvailCarport.objects.get(carport_site=carport_site)
-            old.delete()
+            # 该车位如果在这个时间段内被租用 则不允许发布车位 否则就更新
+            old = models.AvailCarport.objects.filter(carport_site=carport_site)
+            filter1 = models.Order.objects.filter(carport_site=carport_site, status='success',
+                                                  begin_time__lte=end_time, end_time__gte=begin_time)
+            if filter1.count() != 0:
+                message = '所选车位在该时间段被占用,请重新选取'
+                alert_class = 'alert-danger'
+                result_list = list(carport_site_list)
+                result_list_size = result_list.__len__()
+                return render(request, 'carport/publish.html', locals())
+            else:
+                old.delete()
+                models.AvailCarport.objects.create(
+                    carport_site=carport_site,
+                    begin_time=begin_time,
+                    end_time=end_time,
+                    owner_phone=user_phone,
+                    site_status='free'
+                )
         except:
             pass
-        finally:
-            models.AvailCarport.objects.create(
-                carport_site=carport_site,
-                begin_time=begin_time,
-                end_time=end_time,
-                owner_phone=user_phone,
-            )
-        carport_site_list = models.Carport.objects.filter(owner_phone=user_phone).values_list('site', flat=True)
-        request.session['previous_page'] = request.session['current_page']
-        request.session['current_page'] = 'publish'
-        result_list = []
-        published_list = models.AvailCarport.objects.filter(owner_phone=user_phone)
+
         for carport_site in carport_site_list:
             if models.Carport.objects.get(site=carport_site).current_car_license == '':
                 result_list.append(carport_site)
@@ -157,21 +173,10 @@ def publish(request):
             alert_class = 'alert-warning'
         result_list_size = result_list.__len__()
 
-        message = '发布成功!'
-        alert_class = 'alert-success'
-        request.session['previous_page'] = request.session['current_page']
-        request.session['current_page'] = 'publish'
         return render(request, 'carport/publish.html', locals())
 
-    carport_site_list = models.Carport.objects.filter(owner_phone=user_phone).values_list('site', flat=True)
-    request.session['previous_page'] = request.session['current_page']
-    request.session['current_page'] = 'publish'
-    result_list = []
-    published_list = models.AvailCarport.objects.filter(owner_phone=user_phone)
-    # TODO
     # for published in published_list:
     #     models.Order.objects.filter(carport_site=published.carport_site,begin_time=published.begin_time)
-
     for carport_site in carport_site_list:
         if models.Carport.objects.get(site=carport_site).current_car_license == '':
             result_list.append(carport_site)
@@ -179,7 +184,26 @@ def publish(request):
         message = '此账号下无可发布车位'
         alert_class = 'alert-warning'
     result_list_size = result_list.__len__()
+
+    # site_status = get_site_status(user_phone)
     return render(request, 'carport/publish.html', locals())
+
+
+def get_site_status(user_phone):
+    '''
+    获取车位订单状态
+    :param carport_site_list:
+    :return:
+    '''
+    availCarports = models.AvailCarport.objects.filter(owner_phone=user_phone)
+    for port in availCarports:
+        filter = models.Order.objects.filter(carport_site=port.carport_site, begin_time__lte=port.end_time,
+                                             end_time__gte=port.begin_time)
+        if filter.count() != 0 and filter.first().status == 'success':
+            site_status = '被预约'
+        else:
+            site_status = '未被预约'
+        return site_status
 
 
 def inquiry(request):
@@ -569,6 +593,12 @@ def finish(request):
     user_phone = request.session.get('user').phone
     order_list = models.Order.objects.filter(carport_customer_id=user_phone).exclude(status='negotiate').exclude(
         status='invalid')
+
+    # 更新 availcarport 状态
+    boj = models.AvailCarport.objects.get(carport_site=this_order.carport_site)
+    boj.site_status = 'free'
+    boj.save()
+
     request.session['message'] = '终止成功'
     request.session['alert_class'] = 'alert-success'
     return render(request, 'carport/order_to.html', locals())
@@ -580,6 +610,10 @@ def cancel_published(request):
     :param request:
     :return:
     '''
+    carport_site = request.POST['carport_site']
+    boj = models.AvailCarport.objects.get(carport_site=carport_site)
+    boj.delete()
+    return render(request, 'carport/publish.html', locals())
 
 
 def cancel(request):
@@ -611,6 +645,10 @@ def cancel(request):
             order.save()
             carport_customer.credit -= decimal.Decimal(0.50)
             carport_customer.save()
+    # 更新 availcarport 状态
+    boj = models.AvailCarport.objects.get(carport_site=order.carport_site)
+    boj.site_status = 'free'
+    boj.save()
     request.session['message'] = '取消成功'
     request.session['alert_class'] = 'alert-success'
     return render(request, 'carport/order_to.html', locals())
