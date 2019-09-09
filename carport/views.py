@@ -725,3 +725,14 @@ def displayName(value, arg):
     :return:
     '''
     return eval('value.get_' + arg + '_display()')
+
+
+@register.filter(name='format')
+def code_format(value):
+    res = "%.2f%%" % (value * 100)
+    return res
+
+
+@register.filter(name='num_processor')
+def num_processor(value):
+    return value.replace("".join(list(value)[4:8]), '****')

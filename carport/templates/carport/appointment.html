@@ -25,7 +25,7 @@
             <div class="col-md-offset-1 col-md-5">
                 <div class="panel panel-warning">
                     <div class="panel-heading">
-                        <h3 class="panel-title">车位预约</h3>
+                        <h3 class="panel-title">车位预约 (只限预约当天内车位)</h3>
                     </div>
                     <div class="panel-body">
                         <div style="padding: 20px 50px 10px;">
@@ -74,16 +74,19 @@
 
 {% block js %}
     <script>
-        var now = new Date()
+        var now = new Date();
+        now.setTime(now.getTime());
+        var s2 = now.getFullYear() + "-" + (now.getMonth() + 1) + "-" + now.getDate();
         $('#datetimepicker1').datetimepicker({
             locale: moment().locale('zh-cn'),
-            format: 'YYYY-MM-DD HH:mm',
+            format: 'YYYY-MM-DD HH:00',
             minDate: new Date(),
             sideBySide: true,
             useCurrent: false,
+            maxDate: s2 + ' 23:00',
         });
         $('#datetimepicker2').datetimepicker({
-            format: 'YYYY-MM-DD HH:mm',
+            format: 'YYYY-MM-DD HH:00',
             locale: moment().locale('zh-cn'),
             minDate: new Date(),
             useCurrent: false,

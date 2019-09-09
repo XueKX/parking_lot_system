@@ -105,13 +105,15 @@
                             <tr>
                                 <th>车位号</th>
                                 <th>车位主人手机号</th>
+                                <th>车位空闲概率</th>
                             </tr>
                             </thead>
                             <tbody>
                             {% for i in negotiate_list %}
                                 <tr>
                                     <td>{{ i.0 }}</td>
-                                    <td>{{ i.2 }}</td>
+                                    <td>{{ i.2|num_processor }}</td>
+                                    <td>{{ i.3|format }}</td>
                                 </tr>
                             {% endfor %}
                             </tbody>
@@ -178,6 +180,7 @@
                 x[0].class = "btn btn-default btn-lg"
                 x[0].disabled = "disabled"
             }//通过.childNodes[0].data更改标签值
+            alert("车位协商中，请前往'我预约的订单'中查看进度");
         }
     </script>
 {% endblock %}
